@@ -7,11 +7,7 @@ cam_capture=cv2.VideoCapture(0)
 
 while(True):
     ret,frame=cam_capture.read()
-
-    if not ret:
-        print("Camera cannot be used!")
-        break
-
+    frame=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
     cv2.imshow("camera",frame)
 
     if cv2.waitKey(10)&0xFF==ord("q"):

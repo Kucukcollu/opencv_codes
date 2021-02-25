@@ -11,8 +11,10 @@ while(True):
     if not ret:
         print("Camera cannot be used!")
         break
+    
+    hsv=cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
 
-    cv2.imshow("camera",frame)
+    cv2.imshow("camera",hsv)
 
     if cv2.waitKey(10)&0xFF==ord("q"):
         break
