@@ -5,33 +5,28 @@ import cv2
 
 def read_image(image_name):
     img=cv2.imread(image_name)
+    fx=int(img.shape[1]/2)
+    fy=int(img.shape[0]/2)
+    d=(fx,fy)
+    img=cv2.resize(img,d,interpolation=cv2.INTER_AREA)
     cv2.imshow("Original",img)
     return img
 
-def convert_img_to_gray(image,blur):
-    gray_img=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-    cv2.imshow("Gray image",gray_img)
-    
-    if blur:
-        img=cv2.GaussianBlur(image,(5,5),0)
-    
-    return gray_img
+def color_filter(image,color_lover_bound,color_upper_bound):
+    hsv_img=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+    cv2.imshow("hsv image format",hsv_img)
 
-def apply_threshold(gray_image):
-    img_threshold=cv2.adaptiveThreshold(gray_image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,5,2)
-    cv2.imshow("Adaptive threshold",img_threshold)
+    mask=cv2.inRange(hsv_img,color_lover_bound,color_upper_bound)
 
-    return  img_threshold
+    return mask
 
 def get_contour(image_threshold):
     contours,hierarchy=cv2.findContours(image_threshold.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     
     return contours
 
-def draw_contours(image,contours,image_name):
-    pass
 
-def process_contours(image_threshold,original_image,contour):
+def draw_detect_contour(image_threshold,original_image,contour):
     black_image=np.zeros([image_threshold.shape[0],original_image.shape[1],3],"uint8")
 
     for c in contour:
@@ -39,7 +34,7 @@ def process_contours(image_threshold,original_image,contour):
         perimeter=cv2.arcLength(c,True)
         ((x,y),radius)=cv2.minEnclosingCircle(c)
 
-        if area > 10:
+        if area > 30000:
             cv2.drawContours(original_image,[c],-1,(150,250,150),-1)
             cv2.drawContours(black_image,[c],-1,(150,250,150),-1)
 
@@ -47,12 +42,15 @@ def process_contours(image_threshold,original_image,contour):
 
             cv2.circle(original_image, (cx,cy),(int)(radius),(0,0,255),1)
             cv2.circle(black_image, (cx,cy),(int)(radius),(0,0,255),1)
-        print ("Area: {}, Perimeter: {}".format(area, perimeter))
+            cv2.circle(black_image, (cx,cy),5,(150,150,255),-1)
+            print ("Area: {}, Perimeter: {}".format(area, perimeter))
+
     print ("number of contours: {}".format(len(contour)))
     cv2.imshow("RGB Image Contours",original_image)
     cv2.imshow("Black Image Contours",black_image)
 
     return black_image
+
 
 def get_contour_center(contour):
     M=cv2.moments(contour)
@@ -66,16 +64,19 @@ def get_contour_center(contour):
     return cx, cy
 
 def main():
-    #image="/home/ronux/catkin_ws/src/opencv_codes/images/tennis_ball.jpg"
+    image="/home/ronux/catkin_ws/src/opencv_codes/images/tennis_ball.jpg"
     #image="/home/ronux/catkin_ws/src/opencv_codes/images/tennis_ball2.jpg"
-    image="/home/ronux/catkin_ws/src/opencv_codes/images/shapes.png"
+    #image="/home/ronux/catkin_ws/src/opencv_codes/images/shapes.png"
     #image="/home/ronux/catkin_ws/src/opencv_codes/images/tennis_ball3.jpg"
     #image="/home/ronux/catkin_ws/src/opencv_codes/images/basketball.jpg"
+
+    yellow_lower =(30, 150, 100)
+    yellow_upper = (50, 255, 255)
+
     img=read_image(image)
-    gray_img=convert_img_to_gray(img,blur=True)
-    img_threshold=apply_threshold(gray_img)
-    contours=get_contour(img_threshold)
-    process_contours(img_threshold,img,contours)
+    img_threshold_mask=color_filter(img,yellow_lower,yellow_upper)
+    contours=get_contour(img_threshold_mask)
+    draw_detect_contour(img_threshold_mask,img,contours)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
